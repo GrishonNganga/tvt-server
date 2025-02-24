@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int             @id @default(autoincrement())
+  email     String          @unique
+  name      String?
+  password  String
+  role      Role            @default(USER)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  sessions  SessionOnUser[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Device {
+  id        Int       @id @default(autoincrement())
+  deviceId  String    @unique // Unique identifier for the Raspberry Pi
+  name      String
+  isActive  Boolean   @default(false)
+  lastSeen  DateTime  @default(now())
+  ipAddress String?
+  model     String?
+  location  String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sessions  Session[]
+}
+
+model Session {
+  id           Int             @id @default(autoincrement())
+  deviceId     Int // Foreign key to Device
+  participants SessionOnUser[]
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  device       Device          @relation(fields: [deviceId], references: [id])
+}
+
+model SessionOnUser {
+  participants User    @relation(fields: [userId], references: [id])
+  userId       Int
+  game         Session @relation(fields: [gameId], references: [id])
+  gameId       Int
+
+  @@id([userId, gameId])
+}

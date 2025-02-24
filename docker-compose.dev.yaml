@@ -1,0 +1,21 @@
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  prisma-studio:
+    image: node:latest  
+    working_dir: /src
+    volumes:
+      - .:/src  
+    environment:
+      - DATABASE_URL=file:./dev.db
+    ports:
+      - "5555:5555"
+    command: sh -c "npm install && npx prisma studio"  
+
+volumes:
+  redis_data:
