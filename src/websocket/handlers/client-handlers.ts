@@ -1,12 +1,14 @@
 import { RedisClientType } from "redis";
-import { AuthenticatedSocket } from "../../config/socket";
+import { AuthenticatedSocket, ServerSocket } from "../../config/socket";
 import prisma from "../../config/prisma";
 
 export const attachClientHandlers = (
   socket: AuthenticatedSocket,
-  redisClient: RedisClientType
+  redisClient: RedisClientType,
+  serverNamespace: ServerSocket
 ) => {
   socket.on("getActiveDevices", async (data) => {
+    console.log("getActiveDevices data", data);
     try {
       const devices = await prisma.device.findMany({
         where: {
@@ -43,7 +45,7 @@ export const attachClientHandlers = (
           sessionId: activeSession?.id || null,
         };
       });
-
+      console.log("Emitting getActiveDevices", formattedDevices);
       socket.emit("getActiveDevices", {
         status: "success",
         devices: formattedDevices,
@@ -59,8 +61,6 @@ export const attachClientHandlers = (
 
   socket.on("getDevice", async (data: { deviceId: number }) => {
     try {
-
-      console.log("getDevice data", data);
       const device = await prisma.device.findUnique({
         where: {
           deviceId: data.deviceId,
@@ -87,7 +87,6 @@ export const attachClientHandlers = (
           message: "Device not found",
         });
       }
-
       const activeSession = device.sessions[0];
       const formattedDevice = {
         ...device,
@@ -192,6 +191,49 @@ export const attachClientHandlers = (
         status: "error",
         message: "Error creating session for device",
       });
+    }
+  });
+
+  socket.on("rangeStop", async (data) => {
+    try {
+      console.log("rangeStop data from client:", data);
+      await prisma.device.updateMany({
+        data: {
+          rangeStop: data.range_stop,
+        },
+      });
+      serverNamespace.emit("range_data", {
+        type: "range_data",
+        status: "success",
+        message: "Range Stop Status Updated",
+        data: data,
+      });
+      console.log("Published rangeStop");
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  socket.on("processFeed", async (data) => {
+    try {
+      console.log("processFeed data from client:", data);
+      const device = await prisma.device.findFirst({
+        where: {
+          id: data.deviceId,
+        }
+      });
+      if(device && device.serverId){
+        serverNamespace.to(device.serverId).emit("process_feed", {
+          type: "process_feed",
+          status: "success",
+          message: "Process Feed Status Updated",
+          data: data,
+        });
+        console.log("Published processFeed");
+      }
+      
+    } catch (err) {
+      console.log(err);
     }
   });
 };

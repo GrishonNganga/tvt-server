@@ -31,6 +31,8 @@ model Device {
   deviceId  String    @unique // Unique identifier for the Raspberry Pi
   name      String
   isActive  Boolean   @default(false)
+  rangeStop Boolean   @default(false)
+  serverId  String?
   lastSeen  DateTime  @default(now())
   ipAddress String?
   model     String?

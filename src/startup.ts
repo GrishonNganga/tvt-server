@@ -11,24 +11,26 @@ import { PrismaClient } from "@prisma/client";
 import { attachServerHandlers } from "./websocket/handlers/server-handlers";
 import { attachClientHandlers } from "./websocket/handlers/client-handlers";
 import prisma from "./config/prisma";
-import routes from "./routes"; 
+import routes from "./routes";
 
 async function configureMiddleware(app: Express) {
   // Basic middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  
+
   // Configure CORS
-  app.use(cors({
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:5000",
-      "http://localhost:8080",
-    ],
-    credentials: true,
-  }));
+  app.use(
+    cors({
+      origin: [
+        process.env.CLIENT_URL || "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5000",
+        "http://localhost:8080",
+      ],
+      credentials: true,
+    })
+  );
 
   // Health check route
   app.get("/health", (req, res) => {
@@ -61,13 +63,15 @@ async function startup() {
     });
 
     clientNamespace.on("connection", async (socket: AuthenticatedSocket) => {
-      console.log(`Client connected: ${socket.id}, User ID: ${socket?.user?.userId}`); 
+      console.log(
+        `Client connected: ${socket.id}, User ID: ${socket?.user?.userId}`
+      );
 
       await pubClient.hSet(`clientId_${socket.id}`, {
         id: socket?.user?.userId,
       });
 
-      attachClientHandlers(socket, pubClient);
+      attachClientHandlers(socket, pubClient, serverNamespace);
 
       socket.on("disconnect", () => {
         console.log(`Client disconnected: ${socket.id}`);
@@ -78,16 +82,15 @@ async function startup() {
       console.log(
         `Server connected: ${socket.id}, Server ID: ${socket.serverId}`
       );
-
+     
       attachServerHandlers(socket, pubClient);
     });
 
     // Error handling middleware - should be last
     app.use((err: Error, req: any, res: any, next: any) => {
       console.error(err.stack);
-      res.status(500).json({ error: 'Something went wrong!' });
+      res.status(500).json({ error: "Something went wrong!" });
     });
-
   } catch (error) {
     console.error("Startup failed:", error);
     process.exit(1);

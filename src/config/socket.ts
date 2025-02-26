@@ -16,7 +16,7 @@ export interface ServerSocket extends Socket {
 export const initializeSocket = async (httpServer: HTTPServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: [process.env.CLIENT_URL || 'http://localhost:3001', "http://localhost:8080"],
+      origin: [process.env.CLIENT_URL || 'http://localhost:3001', "http://localhost:8080", "http://localhost:5000"],
       credentials: true
     },
     transports: ['websocket', 'polling']
@@ -76,5 +76,6 @@ export const initializeSocket = async (httpServer: HTTPServer) => {
     clientNamespace,
     serverNamespace,
     pubClient,
+    subClient
   };
 };

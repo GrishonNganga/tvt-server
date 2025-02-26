@@ -4,7 +4,7 @@ import { ServerSocket } from "../../config/socket";
 
 export const attachServerHandlers = (
   socket: ServerSocket,
-  redisClient: RedisClientType
+  redisClient: RedisClientType,
 ) => {
 
   socket.on("ping", (data) => {
@@ -27,10 +27,12 @@ export const attachServerHandlers = (
         await prisma.device.update({
           where: { id: parseInt(id) },
           data: {
+            serverId: null,
             isActive: false,
             lastSeen: new Date(),
           },
         });
+        await redisClient.hDel(`serverId_${socket.id}`, "id");
       }
     } catch (error) {
       console.error("Error handling disconnect:", error);
@@ -50,6 +52,7 @@ export const attachServerHandlers = (
       update: {
         ipAddress: clientIp,
         name: data.name,
+        serverId: socket.id,
         isActive: true,
         lastSeen: new Date(),
       },
@@ -70,5 +73,6 @@ export const attachServerHandlers = (
         id: device.id,
       });
     }
-  });
+  });  
+  
 };
